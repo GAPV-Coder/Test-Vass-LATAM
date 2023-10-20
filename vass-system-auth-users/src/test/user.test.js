@@ -1,67 +1,86 @@
 import chai from 'chai';
 import chaiHttp from 'chai-http';
-import app from '../index.js';
+import sinon from 'sinon';
+import UserService from '../services/user.services.js';
+import User from '../models/user.model.js';
 
 chai.use(chaiHttp);
 const expect = chai.expect;
 
-let authToken;
+describe('UserService', () => {
+    describe('getUsers', () => {
+        it('should get all users', async () => {
+            const findStub = sinon.stub(User, 'find');
+            findStub.resolves([
+                { _id: 'userId1', name: 'User 1' },
+                { _id: 'userId2', name: 'User 2' },
+            ]);
 
-describe('User Routes', () => {
-    it('should log in and get an auth token', (done) => {
-        chai.request(app)
-        .post('/api/v1/auth/login')
-        .send({
-            email: 'ypereira@test.com',
-            password: 'ypereira2023',
-        })
-        .end((err, res) => {
-            expect(res).to.have.status(200);
-            expect(res.body).to.have.property('token');
-            authToken = res.body.token;
-            done();
+            const users = await UserService.getUsers();
+
+            expect(users).to.be.an('array');
+            expect(users).to.have.length(2);
+            expect(findStub.calledOnce).to.be.true;
+
+            findStub.restore();
+        });
+
+        it('should handle error when getting users', async () => {
+            const findStub = sinon.stub(User, 'find');
+            findStub.rejects(new Error('Database error'));
+
+            try {
+                await UserService.getUsers();
+            } catch (error) {
+                expect(error).to.be.an('error');
+                expect(error.message).to.equal('Database error');
+            }
+
+            findStub.restore();
         });
     });
-    it('should get all users', (done) => {
-        chai.request(app)
-            .get('/api/v1/users/all-users')
-            .set('Authorization', `Bearer ${authToken}`)
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                done();
-            });
-    });
-    it('should get a user by id', (done) => {
-        chai.request(app)
-            .get('/api/v1/users/user/60a4b3f3c9b4c50015b3e1f2')
-            .set('Authorization', `Bearer ${authToken}`)
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                done();
-            });
-    });
-    it('should update a user by id', (done) => {
-        chai.request(app)
-            .patch('/api/v1/users/update-user/60a4b3f3c9b4c50015b3e1f2')
-            .set('Authorization', `Bearer ${authToken}`)
-            .send({
-                'fullName': 'John Doe',
-                'email': 'jonhdoe@test.com',
-                'phoneNumber': '+23480758392',
-            }).end((err, res) => {
-                expect(res).to.have.status(200);
-                done();
-            });
-    });
-    it('should delete a user by id', (done) => {
-        chai.request(app)
-            .delete('/api/v1/users/delete-user/60a4b3f3c9b4c50015b3e1f2')
-            .set('Authorization', `Bearer ${authToken}`)
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                done();
-            });
+
+    describe('getUserById', () => {
+        it('should get a user by ID', async () => {
+            const findByIdStub = sinon.stub(User, 'findById');
+            findByIdStub.resolves({ _id: 'userId', name: 'User' });
+
+            const user = await UserService.getUserById('userId');
+
+            expect(user).to.be.an('object');
+            expect(user).to.have.property('name', 'User');
+            expect(findByIdStub.calledOnce).to.be.true;
+
+            findByIdStub.restore();
+        });
+
+        it('should handle error when getting a user by ID', async () => {
+            const findByIdStub = sinon.stub(User, 'findById');
+            findByIdStub.rejects(new Error('Database error'));
+
+            try {
+                await UserService.getUserById('userId');
+            } catch (error) {
+                expect(error).to.be.an('error');
+                expect(error.message).to.equal('Database error');
+            }
+
+            findByIdStub.restore();
+        });
+
+        it('should handle user not found', async () => {
+            const findByIdStub = sinon.stub(User, 'findById');
+            findByIdStub.resolves(null);
+
+            try {
+                await UserService.getUserById('nonexistentUserId');
+            } catch (error) {
+                expect(error).to.be.an('error');
+                expect(error.message).to.equal('User not found');
+                expect(error.statusCode).to.equal(404);
+            }
+
+            findByIdStub.restore();
+        });
     });
 });

@@ -8,7 +8,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "mocha --require esm src/test/**/*.test.js",
-    "test-watch": "mocha --watch src/test/**/*.test.js"
+    "test:auth": "mocha tests/to/auth.test.js"
   },
   "author": "Gustavo Pereira Villa",
   "license": "ISC",
@@ -27,6 +27,7 @@
     "mongoose": "^7.6.3",
     "mongoose-paginate-v2": "^1.7.4",
     "nodemon": "^3.0.1",
+    "sinon": "^16.1.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0"
   },
